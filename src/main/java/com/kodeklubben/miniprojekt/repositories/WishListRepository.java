@@ -20,6 +20,8 @@ public class WishListRepository {
     private static final String GET_WISHES = "SELECT id, name, link FROM wishes WHERE wishListId=?";
     private static final String GET_USER = "SELECT name FROM users WHERE id=?";
 
+    private static final String GET_ID_FROM_LOGIN = "SELECT id FROM users WHERE email=? AND password=?";
+
     private static final String GET_LATEST_USERID = "SELECT id FROM users ORDER BY id DESC LIMIT 1";
     private static final String GET_LATEST_WISH_LIST_ID = "SELECT id FROM wishLists ORDER BY id DESC LIMIT 1";
     private static final String GET_LATEST_WISH_ID = "SELECT id FROM wishes ORDER BY id DESC LIMIT 1";
@@ -58,15 +60,22 @@ public class WishListRepository {
         }
     }
 
-    public ArrayList<String> getAllUser(int userId) {
-        try(PreparedStatement statement = dcm.getConnection().prepareStatement(GET_USER)) {
-            statement.setLong(1, userId);
-            ResultSet resultSet = statement.executeQuery();
-            ArrayList<String> wishLists = new ArrayList<>();
-            while (resultSet.next()) {
-                wishLists.add(resultSet.getString("name"));
-            }
-            return wishLists;
+    public String getUserName(int id) {
+        try (PreparedStatement preparedStatement = dcm.getConnection().prepareStatement(GET_USER)) {
+            ResultSet resultSet = preparedStatement.executeQuery();
+            return resultSet.getString("name");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public int getIdFromAuthentication(String email, String password) {
+        try (PreparedStatement preparedStatement = dcm.getConnection().prepareStatement(GET_ID_FROM_LOGIN)) {
+            preparedStatement.setString(1, email);
+            preparedStatement.setString(2, password);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            return resultSet.getInt("id");
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -146,16 +155,16 @@ public class WishListRepository {
         return lastWishId;
     }
 
-    public ArrayList<WishListModel> addTestData() {
+    public ArrayList<WishListModel> addTestData(int amount) {
         Random random = new Random();
         String[] firstNames = {"Adam", "Bernhard", "Casper", "Katrine", "Emilie", "Louise", "Inga", "Johanne", "Peter"};
         String[] lastNames = {"Jørgensen", "Hansen", "Jappe", "Hage", "Boogie", "Østergaard", "Vestergaard", "Frederiksen", "Christiansen", "Danielsen"};
         ArrayList<WishListModel> wishLists = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            String randomName = firstNames[random.nextInt(10)] + " " +  lastNames[random.nextInt(10)];
+        for (int i = 0; i < amount; i++) {
+            String randomName = firstNames[random.nextInt(firstNames.length)] + " " +  lastNames[random.nextInt(lastNames.length)];
 
             //create user and receive userId
-            int userId = insertNewUser(randomName, randomName + "@kea.dk", randomName + "password");
+            int userId = insertNewUser(randomName, randomName.split(" ")[0] + "@kea.dk", randomName.split(" ")[0] + "password");
 
             //create wishList and receive wishListId
             int wishListId = insertNewWishList(randomName + "'s juleønsker", userId);
